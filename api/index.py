@@ -12,7 +12,6 @@ parent_dir = current_dir.parent
 sys.path.insert(0, str(parent_dir))
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import json
 
 # Import AI modules
@@ -30,7 +29,6 @@ from modules.gemini_ai_engine import (
 )
 
 app = Flask(__name__)
-CORS(app)
 
 @app.route('/api/gemini/ats-resume', methods=['POST'])
 def ats_resume():
