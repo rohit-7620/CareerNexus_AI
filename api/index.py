@@ -158,7 +158,5 @@ def learning_path():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Vercel serverless function handler
-# This is the entry point for Vercel
-if __name__ == "__main__":
-    app.run()
+# Export app for Vercel - this is the WSGI application
+application = app
