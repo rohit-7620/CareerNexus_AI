@@ -12,151 +12,139 @@ parent_dir = current_dir.parent
 sys.path.insert(0, str(parent_dir))
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import json
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Import AI modules
-from modules.gemini_ai_engine import (
-    generate_ats_resume,
-    generate_cover_letter,
-    optimize_linkedin_profile,
-    conduct_mock_interview,
-    evaluate_interview_answer,
-    predict_career_trajectory,
-    analyze_skill_gaps,
-    generate_salary_negotiation_strategy,
-    analyze_job_description,
-    generate_personalized_learning_path
-)
+from modules.gemini_ai_engine import GeminiAIEngine
 
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# Initialize Gemini AI Engine
+gemini_engine = GeminiAIEngine()
 
 @app.route('/api/gemini/ats-resume', methods=['POST'])
 def ats_resume():
     try:
         data = request.json
-        result = generate_ats_resume(
-            name=data.get('name'),
-            email=data.get('email'),
-            phone=data.get('phone'),
-            target_role=data.get('target_role'),
-            years_experience=data.get('years_experience'),
-            skills=data.get('skills', []),
-            education=data.get('education'),
-            experience=data.get('experience'),
-            achievements=data.get('achievements')
-        )
+        user_data = {
+            'name': data.get('name'),
+            'email': data.get('email'),
+            'phone': data.get('phone'),
+            'target_role': data.get('target_role'),
+            'years_experience': data.get('years_experience'),
+            'skills': data.get('skills', []),
+            'education': data.get('education'),
+            'experience': data.get('experience'),
+            'achievements': data.get('achievements')
+        }
+        result = gemini_engine.generate_ats_optimized_resume(user_data)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/cover-letter', methods=['POST'])
 def cover_letter():
     try:
         data = request.json
-        result = generate_cover_letter(
-            user_profile=data.get('user_profile', {}),
-            job_details=data.get('job_details', {})
-        )
-        return jsonify(result)
+        user_data = data.get('user_profile', {})
+        job_description = data.get('job_description', '')
+        result = gemini_engine.generate_personalized_cover_letter(user_data, job_description)
+        return jsonify({'success': True, 'cover_letter': result})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/linkedin-optimizer', methods=['POST'])
 def linkedin_optimizer():
     try:
         data = request.json
-        result = optimize_linkedin_profile(
-            current_profile=data.get('current_profile', {}),
-            target_role=data.get('target_role', ''),
-            industry=data.get('industry', '')
-        )
+        profile_data = data.get('current_profile', {})
+        result = gemini_engine.analyze_linkedin_profile(profile_data)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/mock-interview', methods=['POST'])
 def mock_interview():
     try:
         data = request.json
-        result = conduct_mock_interview(
-            role=data.get('role'),
-            difficulty=data.get('difficulty', 'medium')
-        )
+        role = data.get('role', 'Software Engineer')
+        difficulty = data.get('difficulty', 'medium')
+        question_number = data.get('question_number', 1)
+        result = gemini_engine.conduct_mock_interview(role, difficulty, question_number)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/evaluate-answer', methods=['POST'])
 def evaluate_answer():
     try:
         data = request.json
-        result = evaluate_interview_answer(
-            question=data.get('question'),
-            answer=data.get('answer'),
-            role=data.get('role')
-        )
+        question = data.get('question', '')
+        answer = data.get('answer', '')
+        role = data.get('role', '')
+        result = gemini_engine.evaluate_interview_answer(question, answer, role)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/career-trajectory', methods=['POST'])
 def career_trajectory():
     try:
         data = request.json
-        result = predict_career_trajectory(
-            user_profile=data.get('user_profile', {})
-        )
+        user_profile = data.get('user_profile', {})
+        result = gemini_engine.predict_career_trajectory(user_profile)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/skill-gap', methods=['POST'])
 def skill_gap():
     try:
         data = request.json
-        result = analyze_skill_gaps(
-            user_profile=data.get('user_profile', {}),
-            target_role=data.get('target_role', '')
-        )
+        current_skills = data.get('current_skills', [])
+        target_role = data.get('target_role', '')
+        result = gemini_engine.analyze_skill_gaps(current_skills, target_role)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/salary-negotiation', methods=['POST'])
 def salary_negotiation():
     try:
         data = request.json
-        result = generate_salary_negotiation_strategy(
-            user_profile=data.get('user_profile', {}),
-            job_offer=data.get('job_offer', {})
-        )
+        user_data = data.get('user_profile', {})
+        job_offer = data.get('job_offer', {})
+        result = gemini_engine.generate_salary_negotiation_strategy(user_data, job_offer)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/job-analysis', methods=['POST'])
 def job_analysis():
     try:
         data = request.json
-        result = analyze_job_description(
-            job_description=data.get('job_description', ''),
-            user_skills=data.get('user_skills', [])
-        )
+        job_description = data.get('job_description', '')
+        result = gemini_engine.analyze_job_description(job_description)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/gemini/learning-path', methods=['POST'])
 def learning_path():
     try:
         data = request.json
-        result = generate_personalized_learning_path(
-            user_profile=data.get('user_profile', {}),
-            target_skills=data.get('target_skills', [])
-        )
+        user_profile = data.get('user_profile', {})
+        goal = data.get('goal', '')
+        result = gemini_engine.generate_personalized_learning_path(user_profile, goal)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Export app for Vercel - this is the WSGI application
 application = app
