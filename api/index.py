@@ -26,12 +26,35 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Initialize Gemini AI Engine
-gemini_engine = GeminiAIEngine()
+try:
+    gemini_engine = GeminiAIEngine()
+    print("✓ Gemini AI Engine initialized successfully")
+except Exception as e:
+    print(f"✗ Failed to initialize Gemini AI Engine: {str(e)}")
+    gemini_engine = None
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'gemini_initialized': gemini_engine is not None,
+        'api_key_set': bool(os.getenv('GEMINI_API_KEY'))
+    })
 
 @app.route('/api/gemini/ats-resume', methods=['POST'])
 def ats_resume():
     try:
+        if not gemini_engine:
+            return jsonify({
+                'success': False, 
+                'error': 'Gemini AI Engine not initialized. Check API keys in environment variables.'
+            }), 500
+            
         data = request.json
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            
         user_data = {
             'name': data.get('name'),
             'email': data.get('email'),
@@ -46,7 +69,14 @@ def ats_resume():
         result = gemini_engine.generate_ats_optimized_resume(user_data)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in ats_resume: {error_details}")
+        return jsonify({
+            'success': False, 
+            'error': str(e),
+            'details': 'Check server logs for more information'
+        }), 500
 
 @app.route('/api/gemini/cover-letter', methods=['POST'])
 def cover_letter():

@@ -717,8 +717,10 @@
             }
         }
 
-        // API Base URL
-        const API_URL = 'http://localhost:5000/api/gemini';
+        // API Base URL - automatically detect environment
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:5000/api/gemini' 
+            : '/api/gemini';
 
         // Modal Functions
         function openATSResumeModal() {
