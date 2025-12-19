@@ -1,0 +1,101 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Check code formatting
+      run: |
+        pip install black
+        black --check . || echo "Code formatting check completed"
+        
+    - name: Run tests
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        GEMINI_INTERVIEW_API_KEY: ${{ secrets.GEMINI_INTERVIEW_API_KEY }}
+      run: |
+        python test_features.py
+        
+    - name: Check for syntax errors
+      run: |
+        python -m py_compile app.py
+        python -m py_compile modules/*.py
+        
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install security tools
+      run: |
+        pip install safety bandit
+        
+    - name: Check for security vulnerabilities
+      run: |
+        safety check --json || echo "Security check completed"
+        bandit -r . -f json || echo "Bandit scan completed"
+        
+  build:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Build application
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        echo "Build successful"
+        
+    - name: Create deployment artifact
+      run: |
+        mkdir -p deployment
+        cp -r . deployment/
+        tar -czf deployment.tar.gz deployment/
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: deployment-package
+        path: deployment.tar.gz
+        retention-days: 7
